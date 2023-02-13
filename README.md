@@ -77,3 +77,31 @@ WHERE schedule @> '{ 1, 7 }'::integer[];
 SELECT * FROM pilots
 WHERE NOT ( schedule && ARRAY[ 2, 5 ] );
 ```
+Пример вставки в таблицу с json
+```
+INSERT INTO pilot_hobbies
+VALUES ( 'Ivan','{ "sports": [ "футбол", "плавание" ],"home_lib": true, "trips": 3}'::jsonb);
+```
+пример выборки поля где один из ключей json содержит значение
+```
+SELECT * FROM pilot_hobbies
+WHERE hobbies @> '{ "sports": [ "футбол" ] }'::jsonb;
+```
+что аналогично
+```
+SELECT pilot_name, hobbies->'sports' AS sports
+FROM pilot_hobbies
+WHERE hobbies->'sports' @> '[ "футбол" ]'::jsonb;
+```
+Пример на наличие ключа в json
+```
+SELECT count( * )
+FROM pilot_hobbies
+WHERE hobbies ? 'sport';
+```
+Пример добавления значения в массив jsonа по ключю
+```
+UPDATE pilot_hobbies
+SET hobbies = jsonb_set( hobbies, '{ sports, 1 }', '"футбол"' )
+WHERE pilot_name = 'Boris';
+```
