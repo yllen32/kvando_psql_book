@@ -105,3 +105,81 @@ UPDATE pilot_hobbies
 SET hobbies = jsonb_set( hobbies, '{ sports, 1 }', '"футбол"' )
 WHERE pilot_name = 'Boris';
 ```
+Пример создания таблицы с уникальыми ключами, ограничениями, обрати внимание что ограничения могут объявлятся двумя видами (во время объявления поля либо после в отдельной строке (так называемой форме ограничения уровня таблицы.))
+```
+CREATE TABLE progress
+(
+record_book numeric( 5 ) PRIMARY KEY,
+term numeric( 1 ) CHECK ( term = 1 OR term = 2 ),
+mark numeric( 1 ) DEFAULT 5,
+doc_ser numeric( 4 ),
+doc_num numeric( 6 ),
+CONSTRAINT unique_passport UNIQUE ( doc_ser, doc_num ),
+CONSTRAINT valid_mark CHECK ( mark >= 3 AND mark <= 5 ),
+);
+```
+
+Пример объявления составного primery key
+```
+PRIMARY KEY ( имя-столбца1, имя-столбца2, ...)
+```
+Три экваволентных примера создания таблиц с foreign key
+```
+CREATE TABLE progress
+( record_book numeric( 5 ) REFERENCES students(record_book),);
+```
+```
+CREATE TABLE progress
+( record_book numeric( 5 ) REFERENCES students,);
+```
+```
+CREATE TABLE progress
+( record_book numeric( 5 ),
+FOREIGN KEY ( record_book )
+REFERENCES students ( record_book )
+);
+```
+Пример установки комментария (описания к колонке)
+```
+COMMENT ON COLUMN airports.city IS 'Город';
+```
+Пример установки ограничения на установленные варианты
+
+```
+CHECK ( status IN ( 'On Time', 'Delayed', 'Departed','Arrived', 'Scheduled', 'Cancelled' )
+```
+вместо Serial можно указать type integer но в default указать
+```
+DEFAULT nextval('flights_flight_id_seq'::regclass)
+```
+Пример установки\удаления ограничений уже в существующую таблицу
+```
+ALTER TABLE airports
+ALTER TABLE aircrafts ALTER COLUMN speed SET NOT NULL;
+ALTER TABLE aircrafts ADD CHECK( speed >= 300 );
+
+ALTER TABLE aircrafts ALTER COLUMN speed DROP NOT NULL;
+ALTER TABLE aircrafts DROP CONSTRAINT aircrafts_speed_check;
+```
+Пример изменения типа данных столбца
+```
+ALTER TABLE airports
+ALTER COLUMN latitude SET DATA TYPE numeric( 5,2 );
+```
+Пример удаления ограничения и изменения типа данный с строкового на числовой.
+```
+ALTER TABLE seats
+DROP CONSTRAINT seats_fare_conditions_check,
+ALTER COLUMN fare_conditions SET DATA TYPE integer
+USING ( CASE WHEN fare_conditions = 'Economy' THEN 1
+WHEN fare_conditions = 'Business' THEN 2
+ELSE 3 END
+);
+```
+Пример создания материализованного представления (сохраняет данные внутри, в отличии от обычных view)
+```
+CREATE MATERIALIZED VIEW [ IF NOT EXISTS ] имя-мат-представления
+[ ( имя-столбца [, ...] ) ]
+AS запрос
+[ WITH [ NO ] DATA ];
+```
