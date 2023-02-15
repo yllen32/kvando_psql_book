@@ -183,3 +183,61 @@ CREATE MATERIALIZED VIEW [ IF NOT EXISTS ] имя-мат-представлен�
 AS запрос
 [ WITH [ NO ] DATA ];
 ```
+Пример выборки из таблицы с дополненением по какому либо условию.
+```
+SELECT model, range,
+CASE WHEN range < 2000 THEN 'Ближнемагистральный'
+WHEN range < 5000 THEN 'Среднемагистральный'
+ELSE 'Дальнемагистральный'
+END AS type
+FROM aircrafts
+ORDER BY model;
+```
+Пример запроса с join
+```
+SELECT a.aircraft_code, a.model, s.seat_no, s.fare_conditions
+FROM seats AS s
+JOIN aircrafts AS a
+ON s.aircraft_code = a.aircraft_code
+WHERE a.model ~ '^Cessna'
+ORDER BY s.seat_no;
+```
+Пример более сложного запроса с примером как оператор AS может опускаться.
+```
+SELECT count( * )
+FROM ( ticket_flights t JOIN flights f ON t.flight_id = f.flight_id)
+LEFT OUTER JOIN boarding_passes b
+ON t.ticket_no = b.ticket_no AND t.flight_id = b.flight_id
+WHERE f.actual_departure IS NOT NULL AND b.flight_id IS NULL;
+```
+Пример объединения запроса
+```
+SELECT arrival_city FROM routes
+WHERE departure_city = 'Москва'
+UNION # также может быть INTERSECT (пересечение множества) или EXCEPT (разность множества)
+SELECT arrival_city FROM routes
+WHERE departure_city = 'Санкт-Петербург'
+ORDER BY arrival_city;
+```
+Пример запроса с  HAVING (условие проверяется уже по результату запроса а не до)
+```
+SELECT departure_city, count( * )
+FROM routes
+GROUP BY departure_city
+HAVING count( * ) >= 15
+ORDER BY count DESC;
+```
+Пример запроса с выбором действия при конфликте
+```
+INSERT INTO aircrafts_tmp
+VALUES ( 'SU9', 'Sukhoi SuperJet', 3000 )
+ON CONFLICT ON CONSTRAINT aircrafts_tmp_pkey
+DO UPDATE SET model = excluded.model,
+range = excluded.range
+RETURNING *;
+```
+Пример копирования данных из таблицы в файл в csv формате
+```
+COPY aircrafts_tmp TO '/home/postgres/aircrafts_tmp.txt'
+WITH ( FORMAT csv );
+```
