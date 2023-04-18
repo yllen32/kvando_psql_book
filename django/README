@@ -1,0 +1,76 @@
+```python
+from django.db.models import Count, F
+
+# Получить список авторов и количество их книг
+authors = Author.objects.annotate(num_books=Count('book'))
+
+# Обновить цену всех товаров на 10%
+Product.objects.update(price=F('price') * 1.1)
+```
+
+```python
+from django.db.models import OuterRef, Subquery, Exists
+
+# Получить список авторов, у которых есть книги в жанре "фантастика"
+authors = Author.objects.filter(book__genre='фантастика').distinct()
+
+# Получить список категорий, у которых есть книги, написанные автором с заданным id
+author_id = 1
+categories = Category.objects.filter(book__author_id=author_id).distinct()
+
+# Получить список книг, у которых есть отзывы, которые были добавлены позднее, чем дата публикации книги
+books = Book.objects.filter(review__date__gt=F('published_date'))
+
+# Получить список книг, у которых есть отзывы, и обновить статус книги в зависимости от наличия отзывов
+Book.objects.annotate(has_reviews=Exists(Review.objects.filter(book_id=OuterRef('pk')))).update(status=Case(When(has_reviews=True, then='published'), default='draft'))
+```
+
+```python
+from django.db.models import Avg, Max, Min, Window, functions as F
+
+# Получить среднее количество страниц для каждого жанра книг
+genres = Genre.objects.annotate(avg_pages=Avg('book__num_pages'))
+
+# Получить список авторов с наибольшим и наименьшим количеством книг
+authors = Author.objects.annotate(num_books=Count('book')).order_by('-num_books')
+top_authors = authors[:10]
+bottom_authors = authors[-10:]
+
+# Получить список книг, отсортированных по дате добавления и пронумерованных
+books = Book.objects.annotate(rank=Window(expression=F.RowNumber(), order_by=F('added_date').asc()))
+
+# Получить список пользователей, у которых было наибольшее количество заказов за последний месяц
+users = User.objects.annotate(num_orders=Count('order', filter=Q(order__date__gte=timezone.now() - timezone.timedelta(days=30)))).order_by('-num_orders')
+top_users = users[:10]
+```
+
+```python
+from django.db.models import Prefetch
+
+# Получить список авторов вместе с их книгами, используя prefetch_related для оптимизации запросов
+authors = Author.objects.prefetch_related('book')
+
+# Получить список категорий вместе с их книгами и авторами, используя prefetch_related и select_related для оптимизации запросов
+categories = Category.objects.prefetch_related(Prefetch('book', queryset=Book.objects.select_related('author')))
+
+# Получить список пользователей вместе с их заказами и продуктами, используя prefetch_related и select_related для оптимизации запросов
+users = User.objects.prefetch_related(Prefetch('order_set', queryset=Order.objects.select_related('product')))
+```
+
+```python
+from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
+
+# Получить список книг, соответствующих запросу поиска
+query = 'Python'
+books = Book.objects.annotate(search=SearchVector('title', 'description')).filter(search=SearchQuery(query)).annotate(rank=SearchRank(F('search'), SearchQuery(query)))
+```
+
+```python
+from django.db.models import Subquery, OuterRef
+
+# Выбрать все заказы, у которых цена выше средней цены всех заказов
+from django.db.models import Avg
+
+average_price = Order.objects.aggregate(avg_price=Avg('price'))['avg_price']
+orders = Order.objects.filter(price__gt=Subquery(Order.objects.filter(id=OuterRef('id')).values('price').annotate(avg_price=Avg('price')).values('avg_price')))
+```
