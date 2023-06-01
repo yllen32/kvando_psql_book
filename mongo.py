@@ -81,3 +81,59 @@ operations = [
 ]
 
 collection.bulk_write(operations)
+# получить имена всех учителей текущего subject
+pipeline = [
+    {
+        '$match': {
+            'subject': ObjectId(subject_id)
+        }
+    },
+    {
+        '$lookup': {
+            'from': 'users',
+            'localField': 'teacher',
+            'foreignField': '_id',
+            'as': 'user'
+        }
+    },
+    {
+        '$unwind': '$user'
+    },
+    {
+        '$lookup': {
+            'from': 'accounts',
+            'localField': 'user.account',
+            'foreignField': '_id',
+            'as': 'account'
+        }
+    },
+    {
+        '$unwind': '$account'
+    },
+    {
+        '$project': {
+            'firstName': '$account.firstName',
+            'lastName': '$account.lastName'
+        }
+    },
+    {
+        '$group': {
+            '_id': {
+                'firstName': '$firstName',
+                'lastName': '$lastName'
+            }
+        }
+    },
+    {
+        '$project': {
+            '_id': 0,
+            'firstName': '$_id.firstName',
+            'lastName': '$_id.lastName'
+        }
+    }
+]
+
+result = collection.aggregate(pipeline)
+
+for teacher in result:
+    print(f"Имя: {teacher['firstName']}, Фамилия: {teacher['lastName']}")
